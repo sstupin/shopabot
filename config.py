@@ -2,7 +2,7 @@
 import logging
 
 ## параметры бота
-BOT_TOKEN = '205453107:AAHEpb8jsNnEonj3yG6zAJUu--ehnhPiaXc'
+BOT_TOKEN = ''
 URL = 'https://api.telegram.org/bot{0}'.format(BOT_TOKEN)
 UPDATE_INTERVAL = 5
 
@@ -15,7 +15,7 @@ ADMINS = [25863149,   ## Sergey Stupin
 
 
 ## парамтры логирования
-LOG_FILENAME = 'e:/temp/shopping_list.log'
+LOG_FILENAME = 'shopping_list.log'
 LOG_SIZE = 5242880
 LOG_COUNT = 10
 LOG_LEVEL = logging.INFO
