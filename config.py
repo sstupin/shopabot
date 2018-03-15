@@ -2,8 +2,8 @@
 import logging
 
 ## параметры бота
-BOT_TOKEN = ''
-URL = 'https://api.telegram.org/bot{0}'.format(BOT_TOKEN)
+BOT_TOKEN = "291679236:AAFzyPF6TLJEBF-rgtWij-NmQqC8lWb_fH0"
+URL = "https://api.telegram.org/bot{0}".format(BOT_TOKEN)
 UPDATE_INTERVAL = 5
 
 ## параметры доступа
@@ -15,14 +15,14 @@ ADMINS = [25863149,   ## Sergey Stupin
 
 
 ## парамтры логирования
-LOG_FILENAME = 'shopping_list.log'
+LOG_FILENAME = "shopabot.log"
 LOG_SIZE = 5242880
 LOG_COUNT = 10
 LOG_LEVEL = logging.INFO
 
 
 ## параметры БД
-DB = 'shopping_list.db'
+DB = "dbname='test_db' user='postgres' password='p@ssw0rd'"
 
 
 ## ссылка на канал с новостями

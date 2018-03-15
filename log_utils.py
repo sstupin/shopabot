@@ -3,6 +3,7 @@
 import logging
 import logging.handlers
 import config
+import sys
 
 ## Запрос на ввод целого числа
 ## Входные параметры:
@@ -28,4 +29,16 @@ def create_log(file_name, file_size, file_count, log_level=config.LOG_LEVEL, log
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+    return logger
+
+def create_stdout_log():
+    logger = logging.getLogger()
+    logger.setLevel(config.LOG_LEVEL)
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(config.LOG_LEVEL)
+    formatter = logging.Formatter('%(levelname)-8s [%(asctime)s] %(message)s')
+    ch.setFormatter(formatter)
+
+    logger.addHandler(ch)
     return logger

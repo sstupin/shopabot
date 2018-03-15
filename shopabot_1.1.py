@@ -3,7 +3,7 @@ import time
 import sys
 import logging
 import logging.handlers
-import sqlite3
+import psycopg2
 import binascii
 import twx.botapi
 from twx.botapi import ReplyKeyboardMarkup
@@ -53,7 +53,7 @@ def command_new(arguments, db_conn, lists, message):
     lists.pop(message.sender.id, None)
     list_id = get_product_list(db_conn, True, message.sender.id)
     lists[message.sender.id] = list_id
-    print 'new list id:', list_id
+    logger.info(u'new list id: {0}'.format(list_id))
     response = {'chat': message.chat}
     response['text'] = u'Создан новый список ' + emojize(':pencil:', use_aliases=True)
     return response
@@ -128,7 +128,6 @@ def command_show_all_users(arguments, db_conn, lists, message):
 
 def unknown_user_response(message):
     user = message.sender
-    print '*** Unknown user: {0}, {1} {2} ({3})'.format(user.id, user.first_name, user.last_name, user.username)
     logger.warning('Unknown user: {0}, {1} {2} ({3})'.format(user.id, user.first_name, user.last_name, user.username))
     response = {'chat': message.chat}
     text = u'Прости, но я не тебя пока не знаю.\nОбратись к @sstupin за помощью.'
@@ -139,7 +138,6 @@ def unknown_user_response(message):
 def handle_msg(bot, db_conn, lists, message):
     text = message.text
     logger.info(u'Message received: ({0}, {1})'.format(message.chat.id, text))
-    logger.debug(message)
     if text: ##message.sender.id in config.USERS:
         ## get last list id
         list_id = lists.get(message.sender.id)
@@ -159,7 +157,7 @@ def handle_msg(bot, db_conn, lists, message):
 def send_response(bot, response):
     text = response.get('text', '')
     r = bot.send_message(response['chat'], text, reply_markup=response.get('reply_markup'))
-    logger.info(u'Response sent: ({0}, {1})'.format(response['chat'].id, text))
+    logger.debug(u'Response sent: ({0}, {1})'.format(response['chat'].id, text))
 
 
 def is_admin(sender):
@@ -173,24 +171,28 @@ CMD = {'start': command_start, 'add': command_add, 'show': command_show, 'new': 
 def get_product_list(db_conn, create_new_list, user_id):
     cursor = db_conn.cursor()
     if create_new_list:
-        sql = u'insert into list (list, user) values(?, ?)'
+        sql = u'insert into lists (list, user_id) values(%s, %s) returning id'
+        logger.info(cursor.mogrify(sql, ('', user_id)))
         cursor.execute(sql, ('', user_id))
+        list_id = cursor.fetchone()[0]
+        logger.info(u'list added, id={0}'.format(list_id))
         db_conn.commit()
-        return cursor.lastrowid
+        return list_id
     else:
-        sql = 'select max(id) from list where user=?'
+        sql = 'select max(id) from lists where user_id=%s'
+        logger.info(cursor.mogrify(sql, (user_id,)))
         cursor.execute(sql, (user_id,))
         row = cursor.fetchone()
-        print u'list found:', row[0]
-        logger.debug(u'{0}: {1}'.format(row[0], sql))
+        logger.info(u'list found: {0}'.format(row[0]))
         if row[0]:
             return row[0]
         else:
-            sql = u'insert into list (list, user) values(?, ?)'
+            sql = u'insert into lists (list, user_id) values(%s, %s)'
+            logger.info(cursor.mogrify(sql, ('', user_id)))
             cursor.execute(sql, ('', user_id))
             db_conn.commit()
             list_id = cursor.lastrowid
-            logger.debug(u'{0}: {1}'.format(list_id, sql))
+            logger.info(u'{0}: {1}'.format(list_id, sql))
             return list_id
 
 def add_product(db_conn, product_name):
@@ -199,37 +201,38 @@ def add_product(db_conn, product_name):
     crc32 = binascii.crc32(p.encode('utf-8'))
     ## добавить индекс по полю crc32 и сразу добавлять продукт, обрабатывая исключение,
     ## если продукт уже существует
-    sql = 'select id from product where crc32=?'
+    sql = 'select id from products where crc32=%s'
+    logger.info(cursor.mogrify(sql, (crc32,)))
     cursor.execute(sql, (crc32,))
     r = cursor.fetchone()
     if r:
         prod_id = r[0]
-        print u'product found:', prod_id
         logger.info(u'product found:'.format(prod_id))
     else:
-        sql = u'insert into product (product, crc32) values(?, ?)'
+        logger.info(u'no products found:')
+        sql = u'insert into products (product, crc32) values(%s, %s) returning id'
+        logger.info(cursor.mogrify(sql, (p, crc32)))
         cursor.execute(sql, (p, crc32))
-        prod_id = cursor.lastrowid
-        logger.info(u'product added: {0}'.format(prod_id))
+        prod_id = cursor.fetchone()[0]
+        logger.info(u'product added, id={0}'.format(prod_id))
         db_conn.commit()
-        print u'product added:', prod_id
     return prod_id
 
 def add_product_to_list(db_conn, list_id, product_id):
     cursor = db_conn.cursor()
     try:
-        sql = 'insert into products_in_list (list_id, product_id) values(?, ?);'
+        sql = 'insert into products_in_lists (list_id, product_id) values(%s, %s);'
+        logger.info(cursor.mogrify(sql, (list_id, product_id)))
         cursor.execute(sql, (list_id, product_id))
-        print u'product {0} added to list {1}'.format(product_id, list_id)
         logger.info(u'product {0} added to list {1}'.format(product_id, list_id))
         db_conn.commit()
         return True
-    except sqlite3.IntegrityError:
-        print u'product {0} already exists in list {1}'.format(product_id, list_id)
+    except psycopg2.IntegrityError:
+        db_conn.rollback()
         logger.info(u'product {0} already exists in list {1}'.format(product_id, list_id))
         return False
     except:
-        print u'error while adding product {0} to list {1}'.format(product_id, list_id)
+        db_conn.rollback()
         logger.error(u'error while adding product {0} to list {1}'.format(product_id, list_id))
         return False
 
@@ -237,77 +240,81 @@ def add_product_to_list(db_conn, list_id, product_id):
 def del_product_from_list(db_conn, list_id, product_id):
     cursor = db_conn.cursor()
     try:
-        sql = 'delete from products_in_list where list_id=? and product_id=?'
+        sql = 'delete from products_in_lists where list_id=%s and product_id=%s'
+        logger.info(cursor.mogrify(sql, (list_id, product_id)))
         cursor.execute(sql, (list_id, product_id))
         was_in_list = cursor.rowcount
         db_conn.commit()
         if was_in_list > 0:
-            sql = 'select product from product where id=?'
+            sql = 'select product from products where id=%s'
+            logger.info(cursor.mogrify(sql, (product_id,)))
             cursor.execute(sql, (product_id,))
             row = cursor.fetchone()
             product = row[0]
-            print(u'product {0} found: {1}'.format(product_id, product))
-            logger.debug(u'{0}, {1}: {2}'.format(sql, product_id, product))
-            print(u'product {0}:{1} deleted from list {2}'.format(product_id, product, list_id))
-            logger.info(u'product {0}:{1} deleted from list {2}'.format(product_id, product, list_id))
-            return product
+            return product.decode('utf-8')
         return None
     except:
-        print(sys.exc_info())
-        print(u'error while deleting product {0} from list {1}'.format(product_id, list_id))
+        db_conn.rollback()
         logger.error(u'error while deleting product {0} from list {1}'.format(product_id, list_id))
+        logger.error(sys.exc_info())
         return None        
 
 def get_products_from_list(db_conn, list_id):
     cursor = db_conn.cursor()
-    sql = 'select product.id, product.product \
-           from  products_in_list, list, product \
-           where products_in_list.list_id=? \
-             and products_in_list.list_id=list.id \
-             and products_in_list.product_id=product.id'
+    sql = 'select products.id, products.product \
+           from  products_in_lists, lists, products \
+           where products_in_lists.list_id=%s \
+             and products_in_lists.list_id=lists.id \
+             and products_in_lists.product_id=products.id'
     products = list()
-    for row in cursor.execute(sql, (list_id,)):
+    logger.info(cursor.mogrify(sql, (list_id,)))
+    cursor.execute(sql, (list_id,))
+    for row in cursor:
         p = list()
         p.append(row[0])
-        p.append(row[1])
+        p.append(row[1].decode('utf-8'))
         products.append(p)
     return products
 
 def log_user(db_conn, user_id, first_name, last_name, username):
     cursor = db_conn.cursor()
     try:
-        sql_insert = 'insert into users (user, first_name, last_name, username, role, first_access_time, last_access_time) values (?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);'
+        sql_insert = 'insert into users (user_id, first_name, last_name, username, role, first_access_time, last_access_time) values (%s, %s, %s, %s, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);'
+        logger.info(cursor.mogrify(sql_insert, (user_id, first_name, last_name, username)))
         cursor.execute(sql_insert, (user_id, first_name, last_name, username))
-        print(u'user {0}, {1}, {2}, {3} added'.format(user_id, first_name, last_name, username))
         logger.info(u'user {0}, {1}, {2}, {3} added'.format(user_id, first_name, last_name, username))
         db_conn.commit()
         return True
-    except sqlite3.IntegrityError:
+    except psycopg2.Error, e:
+        db_conn.rollback()
         logger.info(u'user {0} already exists'.format(user_id))
-        sql_update = 'update users set first_name=?, last_name=?, username=?, last_access_time=CURRENT_TIMESTAMP where user=?;'
+        sql_update = 'update users set first_name=%s, last_name=%s, username=%s, last_access_time=CURRENT_TIMESTAMP where user_id=%s;'
+        logger.info(cursor.mogrify(sql_update, (first_name, last_name, username, user_id)))
         cursor.execute(sql_update, (first_name, last_name, username, user_id))
         logger.info(u'user {0}, {1}, {2}, {3} updated'.format(user_id, first_name, last_name, username))
         db_conn.commit()
         return False
     except:
-        print u'error while adding user {0}'.format(user_id)
+        db_conn.rollback()
         logger.error(u'error while adding user {0}'.format(user_id))
         return False
 
 ## FOR ADMINS ONLY
 def get_all_products(db_conn):
     cursor = db_conn.cursor()
-    sql = 'select product from product order by id'
+    sql = 'select product from products order by id'
     products = list()
-    for row in cursor.execute(sql):
+    cursor.execute(sql)
+    for row in cursor:
         products.append(row[0])
     return products
 
 def get_all_users(db_conn):
     cursor = db_conn.cursor()
-    sql = 'select user, first_name, last_name, username, role, first_access_time, last_access_time from users order by last_access_time;'
+    sql = 'select user_id, first_name, last_name, username, role, first_access_time, last_access_time from users order by last_access_time;'
     users = list()
-    for row in cursor.execute(sql):
+    cursor.execute(sql)
+    for row in cursor:
         user = list()
         user_id = row[0]
         full_user_name = ''
@@ -327,14 +334,14 @@ def get_all_users(db_conn):
 
 if __name__ == '__main__':
     ## SET LOGGING OPTIONS
-    logger = log_utils.create_log(file_name=config.LOG_FILENAME, file_size=config.LOG_SIZE, file_count=config.LOG_COUNT)
+##    logger = log_utils.create_log(file_name=config.LOG_FILENAME, file_size=config.LOG_SIZE, file_count=config.LOG_COUNT)
+    logger = log_utils.create_stdout_log()
     ## open DB
-    db_conn = sqlite3.connect(config.DB)
+    db_conn = psycopg2.connect(config.DB)
     ##########
     last = 0
     bot = twx.botapi.TelegramBot(config.BOT_TOKEN)
     bot.update_bot_info().wait()
-    print u'{0} started...'.format(bot.username)
     logger.info(u'{0} started...'.format(bot.username))
     lists = dict()
     ## get users from DB
@@ -346,19 +353,17 @@ if __name__ == '__main__':
                 last = update.update_id
                 if update.message: ## can be None!!!
                     user = update.message.sender
-                    print u'User: {0}, {1} {2} ({3})'.format(user.id, user.first_name, user.last_name, user.username)
                     logger.info(u'User: {0}, {1} {2} ({3})'.format(user.id, user.first_name, user.last_name, user.username))
                     log_user(db_conn, user.id, user.first_name, user.last_name, user.username)
                     handle_msg(bot, db_conn, lists, update.message)
                 else:
-                    print('Message is None: {0}'.format(update))
+                    logger.error(u'Message is None: {0}'.format(update))
             time.sleep(config.UPDATE_INTERVAL)
         except (KeyboardInterrupt, SystemExit, GeneratorExit):
             break
         except:
-            print(sys.exc_info())
             logger.error(u'Unexpected error: {0}'.format(sys.exc_info()))
             continue
-    print bot.username + u' stopped...'
+    logger.info(bot.username + u' stopped...')
     db_conn.close()
     logger.info(u'{0} stopped. DB connection was closed.'.format(bot.username))
