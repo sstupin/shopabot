@@ -3,7 +3,7 @@ import logging
 import os
 
 ## параметры бота
-BOT_TOKEN = os.environ.get("TOKEN", "291679236:AAFzyPF6TLJEBF-rgtWij-NmQqC8lWb_fH0")
+BOT_TOKEN = os.environ.get("TOKEN")
 URL = "https://api.telegram.org/bot{0}".format(BOT_TOKEN)
 UPDATE_INTERVAL = 5
 
