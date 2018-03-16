@@ -53,7 +53,6 @@ def command_new(arguments, db_conn, lists, message):
     lists.pop(message.sender.id, None)
     list_id = get_product_list(db_conn, True, message.sender.id)
     lists[message.sender.id] = list_id
-    logger.info(u'new list id: {0}'.format(list_id))
     response = {'chat': message.chat}
     response['text'] = u'Создан новый список ' + emojize(':pencil:', use_aliases=True)
     return response
@@ -187,12 +186,12 @@ def get_product_list(db_conn, create_new_list, user_id):
         if row[0]:
             return row[0]
         else:
-            sql = u'insert into lists (list, user_id) values(%s, %s)'
+            sql = u'insert into lists (list, user_id) values(%s, %s) returning id'
             logger.info(cursor.mogrify(sql, ('', user_id)))
             cursor.execute(sql, ('', user_id))
             db_conn.commit()
-            list_id = cursor.lastrowid
-            logger.info(u'{0}: {1}'.format(list_id, sql))
+            list_id = cursor.fetchone()[0]
+            logger.info(u'list added, id={0}'.format(list_id))
             return list_id
 
 def add_product(db_conn, product_name):
@@ -306,7 +305,7 @@ def get_all_products(db_conn):
     products = list()
     cursor.execute(sql)
     for row in cursor:
-        products.append(row[0])
+        products.append(row[0].decode('utf-8'))
     return products
 
 def get_all_users(db_conn):
@@ -318,9 +317,9 @@ def get_all_users(db_conn):
         user = list()
         user_id = row[0]
         full_user_name = ''
-        if row[1]: full_user_name = row[1]
-        if row[2]: full_user_name = full_user_name + ' ' + row[2]
-        if row[3]: full_user_name = full_user_name + ' (' + row[3] + ')'
+        if row[1]: full_user_name = row[1].decode('utf-8')
+        if row[2]: full_user_name = full_user_name + ' ' + row[2].decode('utf-8')
+        if row[3]: full_user_name = full_user_name + ' (' + row[3].decode('utf-8') + ')'
         user_role = row[4]
         first_access_time = row[5]
         last_access_time = row[6]
