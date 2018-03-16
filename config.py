@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 
 ## параметры бота
-BOT_TOKEN = "291679236:AAFzyPF6TLJEBF-rgtWij-NmQqC8lWb_fH0"
+BOT_TOKEN = os.environ.get("TOKEN", "291679236:AAFzyPF6TLJEBF-rgtWij-NmQqC8lWb_fH0")
 URL = "https://api.telegram.org/bot{0}".format(BOT_TOKEN)
 UPDATE_INTERVAL = 5
 
@@ -22,7 +23,7 @@ LOG_LEVEL = logging.INFO
 
 
 ## параметры БД
-DB = "dbname='test_db' user='postgres' password='p@ssw0rd'"
+DB = os.environ.get("DATABASE_URL")
 
 
 ## ссылка на канал с новостями
