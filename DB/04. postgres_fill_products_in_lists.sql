@@ -865,3 +865,7 @@ INSERT INTO products_in_lists (list_id,product_id) VALUES (627,899);
 INSERT INTO products_in_lists (list_id,product_id) VALUES (628,900);
 INSERT INTO products_in_lists (list_id,product_id) VALUES (630,901);
 INSERT INTO products_in_lists (list_id,product_id) VALUES (631,902);
+INSERT INTO products_in_lists (list_id,product_id) VALUES (633,903);
+INSERT INTO products_in_lists (list_id,product_id) VALUES (633,81);
+INSERT INTO products_in_lists (list_id,product_id) VALUES (633,294);
+INSERT INTO products_in_lists (list_id,product_id) VALUES (635,904);
