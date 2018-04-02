@@ -206,7 +206,7 @@ def add_product(db_conn, product_name):
     r = cursor.fetchone()
     if r:
         prod_id = r[0]
-        logger.info(u'product found:'.format(prod_id))
+        logger.info(u'product found: {0}'.format(prod_id))
     else:
         logger.info(u'no products found:')
         sql = u'insert into products (product, crc32) values(%s, %s) returning id'
