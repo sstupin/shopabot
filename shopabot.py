@@ -170,7 +170,7 @@ CMD = {'start': command_start, 'add': command_add, 'show': command_show, 'new': 
 def get_product_list(db_conn, create_new_list, user_id):
     cursor = db_conn.cursor()
     if create_new_list:
-        sql = u'insert into lists (list, user_id) values(%s, %s) returning id'
+        sql = u'insert into lists (list, user_id, creation_date) values(%s, %s, CURRENT_TIMESTAMP) returning id'
         logger.info(cursor.mogrify(sql, ('', user_id)))
         cursor.execute(sql, ('', user_id))
         list_id = cursor.fetchone()[0]
@@ -178,7 +178,7 @@ def get_product_list(db_conn, create_new_list, user_id):
         db_conn.commit()
         return list_id
     else:
-        sql = 'select max(id) from lists where user_id=%s'
+        sql = 'select id from lists where user_id=%s order by creation_date desc limit 1;'
         logger.info(cursor.mogrify(sql, (user_id,)))
         cursor.execute(sql, (user_id,))
         row = cursor.fetchone()
@@ -186,7 +186,7 @@ def get_product_list(db_conn, create_new_list, user_id):
         if row[0]:
             return row[0]
         else:
-            sql = u'insert into lists (list, user_id) values(%s, %s) returning id'
+            sql = u'insert into lists (list, user_id, creation_date) values(%s, %s, CURRENT_TIMESTAMP) returning id'
             logger.info(cursor.mogrify(sql, ('', user_id)))
             cursor.execute(sql, ('', user_id))
             db_conn.commit()
