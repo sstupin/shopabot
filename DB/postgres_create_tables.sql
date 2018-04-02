@@ -30,3 +30,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS products_in_lists_idx ON products_in_lists (
 	list_id,
 	product_id
 );
+
+ALTER TABLE lists ADD COLUMN creation_date timestamp;
+UPDATE lists SET creation_date=CURRENT_TIMESTAMP;
