@@ -182,8 +182,8 @@ def get_product_list(db_conn, create_new_list, user_id):
         logger.info(cursor.mogrify(sql, (user_id,)))
         cursor.execute(sql, (user_id,))
         row = cursor.fetchone()
-        logger.info(u'list found: {0}'.format(row[0]))
         if row[0]:
+            logger.info(u'list found: {0}'.format(row[0]))
             return row[0]
         else:
             sql = u'insert into lists (list, user_id, creation_date) values(%s, %s, CURRENT_TIMESTAMP) returning id'
