@@ -182,6 +182,7 @@ def get_product_list(db_conn, create_new_list, user_id):
         logger.info(cursor.mogrify(sql, (user_id,)))
         cursor.execute(sql, (user_id,))
         row = cursor.fetchone()
+        logger.info(row)
         if row[0]:
             logger.info(u'list found: {0}'.format(row[0]))
             return row[0]
