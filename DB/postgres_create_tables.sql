@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS lists (
 CREATE TABLE IF NOT EXISTS products (
 	id				SERIAL PRIMARY KEY,
 	product			varchar(255) NOT NULL,
-	crc32			integer
+	crc32			bigint
 );
 
 CREATE TABLE IF NOT EXISTS products_in_lists (
