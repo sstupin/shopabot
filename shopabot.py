@@ -197,6 +197,7 @@ def get_product_list(db_conn, create_new_list, user_id):
 def add_product(db_conn, product_name):
     cursor = db_conn.cursor()
     p = product_name.lower().strip()
+    logger.info('{0}: {1}'.format(p, type(p)))
     crc32 = binascii.crc32(p.encode('utf-8'))
     ## добавить индекс по полю crc32 и сразу добавлять продукт, обрабатывая исключение,
     ## если продукт уже существует
@@ -208,7 +209,7 @@ def add_product(db_conn, product_name):
         prod_id = r[0]
         logger.info('product found: {0}'.format(prod_id))
     else:
-        logger.info('no products found:')
+        logger.info('no products found')
         sql = 'insert into products (product, crc32) values(%s, %s) returning id'
         logger.info(cursor.mogrify(sql, (p, crc32)))
         cursor.execute(sql, (p, crc32))
