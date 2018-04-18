@@ -250,7 +250,7 @@ def del_product_from_list(db_conn, list_id, product_id):
             cursor.execute(sql, (product_id,))
             row = cursor.fetchone()
             product = row[0]
-            return product.decode('utf-8')
+            return product
         return None
     except:
         db_conn.rollback()
@@ -271,7 +271,7 @@ def get_products_from_list(db_conn, list_id):
     for row in cursor:
         p = list()
         p.append(row[0])
-        p.append(row[1].decode('utf-8'))
+        p.append(row[1])
         products.append(p)
     return products
 
@@ -305,7 +305,7 @@ def get_all_products(db_conn):
     products = list()
     cursor.execute(sql)
     for row in cursor:
-        products.append(row[0].decode('utf-8'))
+        products.append(row[0])
     return products
 
 def get_all_users(db_conn):
@@ -317,9 +317,9 @@ def get_all_users(db_conn):
         user = list()
         user_id = row[0]
         full_user_name = ''
-        if row[1]: full_user_name = row[1].decode('utf-8')
-        if row[2]: full_user_name = full_user_name + ' ' + row[2].decode('utf-8')
-        if row[3]: full_user_name = full_user_name + ' (' + row[3].decode('utf-8') + ')'
+        if row[1]: full_user_name = row[1]
+        if row[2]: full_user_name = full_user_name + ' ' + row[2]
+        if row[3]: full_user_name = full_user_name + ' (' + row[3] + ')'
         user_role = row[4]
         first_access_time = row[5]
         last_access_time = row[6]
