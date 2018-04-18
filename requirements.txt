@@ -1,4 +1,4 @@
-emoji==0.3.9
+emoji==0.5.0
 psycopg2==2.7.4
 psycopg2-binary==2.7.4
 twx.botapi==3.1.1
